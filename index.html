@@ -3,169 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BZINI | Smart Mobility App</title>
+    <title>BZINI | Smart Mobility</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
     <style>
         :root {
-            /* Core Colors */
-            --primary-wash: #FFD700; /* Gold */
-            --primary-ev: #00E676;   /* Green */
-            --primary-gas: #00B0FF;  /* Blue */
-            --white: #FFFFFF;
-            
-            /* Dark Theme Variables (Default) */
-            --bg-app: #0A0A0B;
-            --bg-sidebar: #121214;
-            --text-main: #FFFFFF;
+            --primary: #FFD700;
+            --ev: #00E676;
+            --gas: #00B0FF;
+            --bg-dark: #0A0A0B;
+            --bg-card: #121214;
+            --text: #FFFFFF;
             --text-dim: #949499;
-            --glass: rgba(18, 18, 20, 0.8);
+            --glass: rgba(18, 18, 20, 0.85);
             --border: rgba(255, 255, 255, 0.08);
-            --shadow: 0 20px 50px rgba(0,0,0,0.5);
-            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow: 0 15px 35px rgba(0,0,0,0.5);
+            --safe-area-bottom: env(safe-area-inset-bottom);
         }
 
         [data-theme="light"] {
-            --bg-app: #F0F2F5;
-            --bg-sidebar: #FFFFFF;
-            --text-main: #1A1A1B;
+            --bg-dark: #F0F2F5;
+            --bg-card: #FFFFFF;
+            --text: #1A1A1B;
             --text-dim: #64748B;
-            --glass: rgba(255, 255, 255, 0.85);
+            --glass: rgba(255, 255, 255, 0.9);
             --border: rgba(0, 0, 0, 0.06);
-            --shadow: 0 15px 35px rgba(0,0,0,0.1);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg-app); color: var(--text-main); overflow: hidden; }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg-dark); 
+            color: var(--text); 
+            overflow: hidden; 
+            height: 100vh;
+        }
 
-        /* --- SPLASH SCREEN --- */
+        /* --- 1. PREMIUM SPLASH SCREEN --- */
         #splash {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0A0A0B; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 9999;
-            transition: opacity 0.8s ease, visibility 0.8s;
+            position: fixed; inset: 0; background: #0A0A0B; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            z-index: 9999; transition: opacity 0.8s ease;
         }
         .splash-logo {
-            font-size: 50px; font-weight: 900; color: var(--primary-wash);
-            display: flex; align-items: center; gap: 15px;
-            animation: pulseGlow 2s infinite ease-in-out;
+            font-size: 42px; font-weight: 900; color: var(--primary);
+            display: flex; align-items: center; gap: 12px;
+            animation: breathe 2s infinite ease-in-out;
         }
-        @keyframes pulseGlow {
-            0%, 100% { opacity: 0.5; transform: scale(0.95); filter: blur(2px); }
-            50% { opacity: 1; transform: scale(1.05); filter: drop-shadow(0 0 20px rgba(255,215,0,0.5)); }
-        }
-        .loader { width: 180px; height: 3px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-top: 30px; overflow: hidden; }
-        .progress { width: 0%; height: 100%; background: var(--primary-wash); animation: load 2.5s forwards linear; }
-        @keyframes load { to { width: 100%; } }
-
-        /* --- APP STRUCTURE --- */
-        .app-shell { display: flex; height: 100vh; width: 100vw; opacity: 0; transition: opacity 1s ease; }
-        .app-shell.active { opacity: 1; }
-
-        /* Sidebar (Desktop) / Bottom Nav (Mobile) */
-        .sidebar {
-            width: 280px; background: var(--bg-sidebar); border-right: 1px solid var(--border);
-            padding: 40px 20px; display: flex; flex-direction: column; z-index: 1000; transition: var(--transition);
+        @keyframes breathe {
+            0%, 100% { transform: scale(0.98); opacity: 0.7; }
+            50% { transform: scale(1.02); opacity: 1; filter: drop-shadow(0 0 15px rgba(255,215,0,0.4)); }
         }
 
-        .nav-item {
-            display: flex; align-items: center; gap: 15px; padding: 15px 20px;
-            border-radius: 18px; cursor: pointer; color: var(--text-dim);
-            transition: var(--transition); margin-bottom: 8px; font-weight: 600;
-        }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
-        .nav-item.active { background: var(--primary-wash); color: #000; box-shadow: 0 10px 20px rgba(255,215,0,0.2); }
+        /* --- 2. LAYOUT ARCHITECTURE --- */
+        .app-container { display: flex; height: 100vh; width: 100vw; }
 
-        /* Main View */
-        .main-view { flex: 1; position: relative; }
-        #map { height: 100%; width: 100%; }
+        /* Sidebar & Bottom Nav (Adaptive) */
+        .navigation {
+            width: 280px; background: var(--bg-card); border-right: 1px solid var(--border);
+            padding: 40px 20px; display: flex; flex-direction: column; z-index: 1000;
+        }
+
+        .nav-link {
+            display: flex; align-items: center; gap: 15px; padding: 14px 18px;
+            border-radius: 16px; cursor: pointer; color: var(--text-dim);
+            transition: 0.3s; margin-bottom: 8px; font-weight: 600;
+        }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+        .nav-link.active { background: var(--primary); color: #000; box-shadow: var(--shadow); }
+
+        /* --- 3. MAIN INTERFACE --- */
+        .map-wrapper { flex: 1; position: relative; }
+        #map { height: 100%; width: 100%; z-index: 1; }
 
         /* Floating Controls */
-        .ui-overlay {
-            position: absolute; top: 25px; left: 25px; right: 25px;
-            z-index: 1000; display: flex; gap: 12px; pointer-events: none;
+        .top-ui {
+            position: absolute; top: 20px; left: 20px; right: 20px;
+            z-index: 1000; display: flex; gap: 10px; pointer-events: none;
         }
-        .search-bar {
-            flex: 1; max-width: 500px; background: var(--glass); backdrop-filter: blur(20px);
-            border: 1px solid var(--border); border-radius: 20px; padding: 12px 20px;
+        .search-container {
+            flex: 1; max-width: 450px; background: var(--glass); backdrop-filter: blur(20px);
+            border: 1px solid var(--border); border-radius: 18px; padding: 10px 18px;
             display: flex; align-items: center; pointer-events: auto; box-shadow: var(--shadow);
         }
-        .search-bar input { background: none; border: none; outline: none; color: var(--text-main); width: 100%; margin-left: 10px; font-size: 16px; }
-        
-        .round-btn {
-            width: 50px; height: 50px; background: var(--glass); backdrop-filter: blur(20px);
-            border: 1px solid var(--border); border-radius: 18px; display: grid; place-items: center;
-            cursor: pointer; pointer-events: auto; color: var(--text-main); transition: var(--transition);
+        .search-container input { 
+            background: none; border: none; outline: none; color: var(--text); 
+            width: 100%; margin-left: 10px; font-size: 16px; /* 16px აჩერებს iOS Zoom-ს */
         }
-        .round-btn:hover { background: var(--primary-wash); color: #000; transform: translateY(-3px); }
 
-        /* --- MOBILE ADAPTATION --- */
+        .action-btn {
+            width: 48px; height: 48px; background: var(--glass); backdrop-filter: blur(20px);
+            border: 1px solid var(--border); border-radius: 16px; display: grid; place-items: center;
+            cursor: pointer; pointer-events: auto; color: var(--text); transition: 0.3s;
+        }
+
+        /* --- 4. MOBILE-FIRST RESPONSIVE (CRITICAL) --- */
         @media (max-width: 768px) {
-            .app-shell { flex-direction: column; }
-            .sidebar {
-                width: 100%; height: 75px; position: fixed; bottom: 0; left: 0;
-                flex-direction: row; padding: 0 10px; border-right: none; border-top: 1px solid var(--border);
-                justify-content: space-around; background: var(--glass); backdrop-filter: blur(25px);
+            .app-container { flex-direction: column; }
+            
+            .navigation {
+                width: 100%; height: calc(70px + var(--safe-area-bottom)); 
+                position: fixed; bottom: 0; left: 0;
+                flex-direction: row; padding: 10px 15px; border-right: none;
+                border-top: 1px solid var(--border); justify-content: space-around;
+                background: var(--glass); backdrop-filter: blur(25px);
+                padding-bottom: var(--safe-area-bottom);
             }
-            .nav-item { flex-direction: column; gap: 4px; padding: 10px; font-size: 10px; margin: 0; flex: 1; border-radius: 0; }
-            .nav-item.active { background: none; box-shadow: none; color: var(--primary-wash); border-top: 3px solid var(--primary-wash); }
-            .sidebar h2, .sidebar p { display: none; }
-            .main-view { height: calc(100vh - 75px); }
-            .ui-overlay { top: 15px; left: 15px; right: 15px; }
+
+            .nav-link { 
+                flex-direction: column; gap: 4px; padding: 8px; font-size: 10px; 
+                margin: 0; flex: 1; border-radius: 0;
+            }
+            .nav-link .material-icons-round { font-size: 24px; }
+            .nav-link.active { background: none; box-shadow: none; color: var(--primary); }
+            
+            .nav-brand, .nav-footer { display: none; } /* მალავს ლოგოს მობილურ მენიუში */
+            
+            .map-wrapper { height: calc(100vh - 70px); }
+            .top-ui { top: 15px; left: 15px; right: 15px; }
         }
 
-        /* Leaflet Popup Customization */
-        .leaflet-popup-content-wrapper { background: var(--bg-sidebar) !important; color: var(--text-main) !important; border-radius: 20px !important; border: 1px solid var(--border); }
-        .status-tag { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; margin-top: 10px; }
+        /* Leaflet Popup Styling */
+        .leaflet-popup-content-wrapper { 
+            background: var(--bg-card) !important; color: var(--text) !important; 
+            border-radius: 20px !important; border: 1px solid var(--border); 
+        }
+        .btn-nav {
+            width: 100%; margin-top: 12px; padding: 12px; border: none; 
+            border-radius: 12px; background: var(--primary); color: #000; 
+            font-weight: 800; cursor: pointer;
+        }
     </style>
 </head>
 <body data-theme="dark">
 
     <div id="splash">
-        <div class="splash-logo"><span class="material-icons-round" style="font-size: 60px;">auto_awesome</span> BZINI</div>
-        <div class="loader"><div class="progress"></div></div>
+        <div class="splash-logo">
+            <span class="material-icons-round" style="font-size: 50px;">auto_awesome</span> BZINI
+        </div>
     </div>
 
-    <div class="app-shell" id="main-app">
-        <aside class="sidebar">
-            <h2 style="color: var(--primary-wash); margin-bottom: 40px; display: flex; align-items: center; gap: 10px;">
-                <span class="material-icons-round">auto_awesome</span> BZINI
-            </h2>
+    <div class="app-container">
+        <nav class="navigation">
+            <div class="nav-brand" style="margin-bottom: 30px;">
+                <h2 style="color: var(--primary); display: flex; align-items: center; gap: 10px;">
+                    <span class="material-icons-round">auto_awesome</span> BZINI
+                </h2>
+            </div>
             
-            <nav style="flex: 1;">
-                <div class="nav-item active" onclick="handleFilter('all', this)">
-                    <span class="material-icons-round">explore</span> აღმოაჩინე
-                </div>
-                <div class="nav-item" onclick="handleFilter('wash', this)">
-                    <span class="material-icons-round">local_car_wash</span> სამრეცხაო
-                </div>
-                <div class="nav-item" onclick="handleFilter('ev', this)">
-                    <span class="material-icons-round">ev_station</span> ჩარჯერი
-                </div>
-                <div class="nav-item" onclick="handleFilter('gas', this)">
-                    <span class="material-icons-round">local_gas_station</span> ბენზინი
-                </div>
-            </nav>
+            <div class="nav-link active" onclick="filterData('all', this)">
+                <span class="material-icons-round">explore</span> <span>ყველა</span>
+            </div>
+            <div class="nav-link" onclick="filterData('wash', this)">
+                <span class="material-icons-round">local_car_wash</span> <span>რეცხვა</span>
+            </div>
+            <div class="nav-link" onclick="filterData('ev', this)">
+                <span class="material-icons-round">ev_station</span> <span>ჩარჯერი</span>
+            </div>
+            <div class="nav-link" onclick="filterData('gas', this)">
+                <span class="material-icons-round">local_gas_station</span> <span>ბენზინი</span>
+            </div>
 
-            <p style="font-size: 11px; color: var(--text-dim); text-align: center;">v4.0 Premium Edition</p>
-        </aside>
+            <div class="nav-footer" style="margin-top: auto; font-size: 11px; color: var(--text-dim); text-align: center;">
+                BZINI PREMIUM v5.0
+            </div>
+        </nav>
 
-        <main class="main-view">
-            <header class="ui-overlay">
-                <div class="search-bar">
+        <main class="map-wrapper">
+            <div class="top-ui">
+                <div class="search-container">
                     <span class="material-icons-round" style="color: var(--text-dim)">search</span>
-                    <input type="text" placeholder="მოძებნე ობიექტი..." oninput="appSearch(this.value)">
+                    <input type="text" placeholder="მოძებნე ობიექტი..." oninput="onSearch(this.value)">
                 </div>
-                <div class="round-btn" onclick="appThemeToggle()">
+                <div class="action-btn" onclick="toggleTheme()">
                     <span class="material-icons-round" id="theme-icon">light_mode</span>
                 </div>
-                <div class="round-btn" onclick="map.locate({setView: true, maxZoom: 16})">
+                <div class="action-btn" onclick="locateMe()">
                     <span class="material-icons-round">my_location</span>
                 </div>
-            </header>
+            </div>
 
             <div id="map"></div>
         </main>
@@ -173,97 +193,77 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Data Logic
-        const BZINI_DATA = [
+        // Data & Logic
+        const DATA = [
             { id: 1, type: 'wash', name: "ბზინი - ვაკე", coords: [41.7100, 44.7500], info: "24/7 • თვითმომსახურება", status: "თავისუფალია" },
-            { id: 2, type: 'ev', name: "Supercharge საბურთალო", coords: [41.7250, 44.7750], info: "120kW Fast Charger", status: "დაკავებულია" },
-            { id: 3, type: 'gas', name: "Wissol - ისანი", coords: [41.6900, 44.8300], info: "Euro Diesel • G-Force", status: "3.15 ₾" },
-            { id: 4, type: 'gas', name: "Gulf - დიღომი", coords: [41.7750, 44.7800], info: "G-Force Diesel", status: "3.12 ₾" }
+            { id: 2, type: 'ev', name: "Fast Charge საბურთალო", coords: [41.7250, 44.7750], info: "120kW Fast Charger", status: "დაკავებულია" },
+            { id: 3, type: 'gas', name: "Wissol - ისანი", coords: [41.6900, 44.8300], info: "Euro Diesel", status: "3.15 ₾" }
         ];
 
-        let map, markersLayer, currentTheme = 'dark';
+        let map, markerLayer, currentTheme = 'dark';
         const tiles = {
             dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
             light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
         };
 
-        // 2. Initialization
         window.onload = () => {
             setTimeout(() => {
                 document.getElementById('splash').style.opacity = '0';
-                document.getElementById('splash').style.visibility = 'hidden';
-                document.getElementById('main-app').classList.add('active');
-                initApp();
-            }, 2500);
+                setTimeout(() => document.getElementById('splash').style.display = 'none', 800);
+                initMap();
+            }, 2000);
         };
 
-        function initApp() {
+        function initMap() {
             map = L.map('map', { zoomControl: false }).setView([41.7151, 44.8271], 13);
-            markersLayer = L.layerGroup().addTo(map);
+            markerLayer = L.layerGroup().addTo(map);
             L.tileLayer(tiles[currentTheme]).addTo(map);
-            render(BZINI_DATA);
-
-            // Admin Logic: Right Click
-            map.on('contextmenu', e => {
-                const name = prompt("ობიექტის სახელი?");
-                if (!name) return;
-                const type = prompt("ტიპი? (wash / ev / gas)");
-                BZINI_DATA.push({
-                    id: Date.now(),
-                    type: type || 'wash',
-                    name: name,
-                    coords: [e.latlng.lat, e.latlng.lng],
-                    info: "ადმინის მიერ დამატებული",
-                    status: "აქტიური"
-                });
-                render(BZINI_DATA);
-            });
+            render(DATA);
         }
 
-        // 3. UI Functions
-        function render(data) {
-            markersLayer.clearLayers();
+        function render(items) {
+            markerLayer.clearLayers();
             const colors = { wash: '#FFD700', ev: '#00E676', gas: '#00B0FF' };
             
-            data.forEach(loc => {
+            items.forEach(loc => {
                 const color = colors[loc.type] || '#fff';
                 const m = L.circleMarker(loc.coords, {
-                    radius: window.innerWidth < 768 ? 14 : 12,
+                    radius: window.innerWidth < 768 ? 15 : 12, // მობილურზე უფრო დიდია
                     fillColor: color, color: '#fff', weight: 3, fillOpacity: 0.9
                 });
                 
                 m.bindPopup(`
-                    <div style="min-width:160px">
-                        <h3 style="color:${color}; margin-bottom:5px;">${loc.name}</h3>
-                        <p style="font-size:12px; color:var(--text-dim);">${loc.info}</p>
-                        <div class="status-tag" style="background:${color}22; color:${color}">${loc.status}</div>
-                        <button onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${loc.coords[0]},${loc.coords[1]}')" 
-                                style="width:100%; margin-top:15px; padding:10px; border:none; border-radius:12px; background:var(--primary-wash); font-weight:900; cursor:pointer;">
-                                ნავიგაცია
-                        </button>
+                    <div style="min-width:180px">
+                        <h3 style="color:${color}">${loc.name}</h3>
+                        <p style="font-size:12px; color:var(--text-dim); margin: 5px 0;">${loc.info}</p>
+                        <strong style="color:${color}">${loc.status}</strong>
+                        <button class="btn-nav" onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${loc.coords[0]},${loc.coords[1]}')">ნავიგაცია</button>
                     </div>
-                `);
-                markersLayer.addLayer(m);
+                `, { closeButton: false });
+                markerLayer.addLayer(m);
             });
         }
 
-        function handleFilter(type, el) {
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        function filterData(type, el) {
+            document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
-            const filtered = type === 'all' ? BZINI_DATA : BZINI_DATA.filter(l => l.type === type);
+            const filtered = type === 'all' ? DATA : DATA.filter(d => d.type === type);
             render(filtered);
-            if(filtered.length) map.fitBounds(L.featureGroup(markersLayer.getLayers()).getBounds().pad(0.3));
         }
 
-        function appSearch(val) {
-            render(BZINI_DATA.filter(l => l.name.toLowerCase().includes(val.toLowerCase())));
-        }
-
-        function appThemeToggle() {
+        function toggleTheme() {
             currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
             document.body.setAttribute('data-theme', currentTheme);
             document.getElementById('theme-icon').innerText = currentTheme === 'dark' ? 'light_mode' : 'dark_mode';
             L.tileLayer(tiles[currentTheme]).addTo(map);
+        }
+
+        function locateMe() {
+            map.locate({setView: true, maxZoom: 16});
+        }
+
+        function onSearch(val) {
+            render(DATA.filter(d => d.name.toLowerCase().includes(val.toLowerCase())));
         }
     </script>
 </body>
